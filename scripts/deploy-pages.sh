@@ -25,6 +25,13 @@ echo "1/4  сборка (api=$API_PUBLIC_URL, base=$BASE)"
 rm -rf apps/web/dist apps/web/tsconfig.tsbuildinfo node_modules/.vite
 VITE_BASE="$BASE" VITE_API_URL="" npm run --silent build --workspace=apps/web
 printf '{"url":"%s"}\n' "$API_PUBLIC_URL" > apps/web/dist/api-endpoint.json
+# Страховка: собранный бандл обязан читать api-endpoint.json в рантайме,
+# иначе смена туннеля не подхватится, а страница будет молча звать мёртвый API.
+grep -q "api-endpoint" apps/web/dist/assets/*.js || {
+  echo "     СБОРКА без рантайм-эндпоинта — прерываю (кэш vite?). Повторите."
+  exit 1
+}
+
 # Pages не умеет SPA-фолбэк — 404 отдаём тем же index.html
 cp apps/web/dist/index.html apps/web/dist/404.html
 touch apps/web/dist/.nojekyll

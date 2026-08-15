@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Поднимает всё, что нужно для работы Mini App на этой машине:
-# API :3001 → фронтенд :5173 → публичный HTTPS-туннель → привязка бота.
+# Поднимает всё, что нужно для работы Mini App с этого Mac:
+#   API :3001 → фронтенд :5173 → публичный HTTPS-туннель → привязка бота.
 #
-# Один туннель обслуживает и Mini App, и вебхук бота: Vite проксирует /api
-# в Fastify, поэтому фронтенд и API живут на одном origin.
+# Сам Mini App живёт на GitHub Pages (стабильный HTTPS без страниц-заглушек,
+# адрес в BotFather вводится один раз). Туннель нужен только для API и вебхука;
+# его адрес фронтенд читает на старте из api-endpoint.json, поэтому смена
+# туннеля не требует пересборки — достаточно обновить один файл.
 #
 # Запуск: npm run up      Остановка: npm run down
 set -euo pipefail
@@ -18,98 +20,78 @@ WEB_LOG=/tmp/lunacy-web.log
 TUN_LOG=/tmp/lunacy-tunnel.log
 
 echo "1/5  база"
-if ! pg_isready -h localhost -p 5432 -q; then
-  echo "     PostgreSQL не отвечает на :5432 — запустите его (brew services start postgresql@16 или docker compose up -d db)"
+pg_isready -h localhost -p 5432 -q || {
+  echo "     PostgreSQL не отвечает на :5432 — brew services start postgresql@16"
   exit 1
-fi
+}
 (cd apps/api && npx prisma migrate deploy >/dev/null)
 
+start_api() {
+  pkill -f "tsx src/index.ts" 2>/dev/null || true
+  (cd apps/api && nohup npx tsx src/index.ts > "$API_LOG" 2>&1 &)
+  for _ in $(seq 1 30); do sleep 0.5; curl -sf -o /dev/null http://localhost:3001/health && return 0; done
+  echo "     API не поднялся, лог: $API_LOG"; exit 1
+}
+
 echo "2/5  api :3001"
-pkill -f "tsx watch src/index.ts" 2>/dev/null || true
-pkill -f "tsx src/index.ts" 2>/dev/null || true
-(cd apps/api && nohup npx tsx src/index.ts > "$API_LOG" 2>&1 &)
-for _ in $(seq 1 30); do sleep 0.5; curl -sf -o /dev/null http://localhost:3001/health && break; done
-curl -sf -o /dev/null http://localhost:3001/health || { echo "     API не поднялся, лог: $API_LOG"; exit 1; }
+start_api
 
 echo "3/5  фронтенд :5173"
-pkill -f "vite" 2>/dev/null || true
+pkill -f "node.*vite" 2>/dev/null || true
 (nohup npm run dev:web > "$WEB_LOG" 2>&1 &)
 for _ in $(seq 1 40); do sleep 0.5; curl -sf -o /dev/null http://localhost:5173/ && break; done
 curl -sf -o /dev/null http://localhost:5173/ || { echo "     Vite не поднялся, лог: $WEB_LOG"; exit 1; }
 
 echo "4/5  туннель"
 pkill -f "cloudflared tunnel" 2>/dev/null || true
-pkill -f "localtunnel" 2>/dev/null || true
-: > "$TUN_LOG"
-
-# Сначала cloudflared. Он ходит к своим edge-IP по QUIC (UDP :7844), а при
-# --protocol http2 — по TCP 443; и то и другое нередко режет VPN или провайдер.
-# QUIC отключаем сразу, чтобы не ждать таймаутов впустую.
-nohup cloudflared tunnel --protocol http2 --edge-ip-version 4 --url http://localhost:5173 >> "$TUN_LOG" 2>&1 &
-
-URL=""
-for _ in $(seq 1 12); do
-  sleep 2
-  CANDIDATE=$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" "$TUN_LOG" | head -1 || true)
-  [ -n "$CANDIDATE" ] && curl -sf -m 8 -o /dev/null "$CANDIDATE/" && { URL="$CANDIDATE"; break; }
-done
-
-if [ -z "$URL" ]; then
-  echo "     cloudflared не пробился (см. $TUN_LOG) — переключаюсь на localtunnel"
-  pkill -f "cloudflared tunnel" 2>/dev/null || true
-  SUB="${TUNNEL_SUBDOMAIN:-lunacyapp67}"
-  # Сервер держит поддомен ещё несколько секунд после разрыва: если не выждать,
-  # localtunnel молча выдаст случайный адрес вместо запрошенного.
-  sleep 6
-  nohup npx -y localtunnel --port 5173 --subdomain "$SUB" >> "$TUN_LOG" 2>&1 &
-  for _ in $(seq 1 20); do
-    sleep 2
-    CANDIDATE=$(grep -oE "https://[a-z0-9-]+\.loca\.lt" "$TUN_LOG" | tail -1 || true)
-    [ -n "$CANDIDATE" ] && curl -sf -m 8 -o /dev/null "$CANDIDATE/" && { URL="$CANDIDATE"; break; }
-  done
-fi
-
-if [ -z "$URL" ]; then
+pkill -f tunnelmole 2>/dev/null || true
+pkill -f localtunnel 2>/dev/null || true
+URL=$(bash scripts/tunnel.sh "$TUN_LOG") || {
   echo "     Ни один туннель не поднялся. Лог: $TUN_LOG"
   exit 1
-fi
+}
 echo "     $URL"
 
-# адрес нужен API — он подставляет его в кнопку web_app
 python3 - "$URL" <<'PY'
 import re, sys
 url = sys.argv[1]
 env = open('.env', encoding='utf-8').read()
-for key in ('WEBAPP_URL', 'API_PUBLIC_URL'):
-    env = re.sub(rf'^{key}=.*$', f'{key}={url}', env, flags=re.M)
-env = re.sub(r'^CORS_ORIGIN=.*$', f'CORS_ORIGIN=http://localhost:5173,{url}', env, flags=re.M)
+env = re.sub(r'^API_PUBLIC_URL=.*$', f'API_PUBLIC_URL={url}', env, flags=re.M)
+pages = re.search(r'^PAGES_URL=(.*)$', env, re.M)
+origins = ['http://localhost:5173', url]
+if pages and pages.group(1).strip():
+    origins.append(re.sub(r'(https?://[^/]+).*', r'\1', pages.group(1).strip()))
+env = re.sub(r'^CORS_ORIGIN=.*$', 'CORS_ORIGIN=' + ','.join(origins), env, flags=re.M)
 open('.env', 'w', encoding='utf-8').write(env)
 PY
 
-# перезапускаем API, чтобы он подхватил новый WEBAPP_URL
-pkill -f "tsx src/index.ts" 2>/dev/null || true
-(cd apps/api && nohup npx tsx src/index.ts > "$API_LOG" 2>&1 &)
-for _ in $(seq 1 30); do sleep 0.5; curl -sf -o /dev/null http://localhost:3001/health && break; done
+set -a; source .env; set +a
+start_api   # перечитать CORS_ORIGIN и WEBAPP_URL
 
 echo "5/5  бот"
 API="https://api.telegram.org/bot$BOT_TOKEN"
+# вебхук — на туннель, кнопки — на статику Pages
 curl -sS -X POST "$API/setWebhook" \
-  -d "url=$URL/api/telegram/webhook" \
+  -d "url=$API_PUBLIC_URL/api/telegram/webhook" \
   -d "secret_token=$TELEGRAM_WEBHOOK_SECRET" \
   -d "drop_pending_updates=true" \
   -d 'allowed_updates=["message","pre_checkout_query"]' > /dev/null
 
+APP_URL="${PAGES_URL:-$API_PUBLIC_URL}"
 curl -sS -X POST "$API/setChatMenuButton" -H 'Content-Type: application/json' \
-  -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"магазин\",\"web_app\":{\"url\":\"$URL\"}}}" > /dev/null
-
+  -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"магазин\",\"web_app\":{\"url\":\"$APP_URL\"}}}" > /dev/null
 curl -sS -X POST "$API/setMyCommands" -H 'Content-Type: application/json' \
   -d '{"commands":[{"command":"start","description":"открыть магазин"}]}' > /dev/null
+
+# сообщить опубликованному фронтенду новый адрес API
+if [ -n "${PAGES_URL:-}" ]; then
+  bash scripts/publish-endpoint.sh || echo "     не удалось обновить api-endpoint.json — запустите npm run deploy"
+fi
 
 BOT=$(curl -sS "$API/getMe" | python3 -c "import sys,json;print(json.load(sys.stdin)['result']['username'])")
 
 echo
 echo "Готово. Открывайте @$BOT и жмите /start"
-echo "  Mini App : $URL"
-echo "  адрес меняется при перезапуске — вебхук и кнопку меню скрипт обновляет сам,"
-echo "  но если Mini App заведён через BotFather /newapp, адрес там правьте руками"
+echo "  Mini App : $APP_URL"
+echo "  API      : $API_PUBLIC_URL"
 echo "  логи     : $API_LOG | $WEB_LOG | $TUN_LOG"

@@ -1,4 +1,27 @@
-const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+/**
+ * Адрес API.
+ *
+ * В разработке пусто — Vite проксирует /api в Fastify на том же origin.
+ * На GitHub Pages фронтенд статичен, а API живёт на туннеле, чей адрес меняется.
+ * Вшивать его в бандл нельзя (иначе каждая смена = пересборка), поэтому он
+ * лежит в api-endpoint.json рядом со статикой и читается один раз при старте.
+ */
+let BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+
+export async function resolveApiBase(): Promise<void> {
+  if (BASE) return;
+  const sameOrigin = import.meta.env.DEV || window.location.hostname === 'localhost';
+  if (sameOrigin) return;
+  try {
+    const res = await fetch(`${import.meta.env.BASE_URL}api-endpoint.json?t=${Date.now()}`, {
+      cache: 'no-store',
+    });
+    const cfg = (await res.json()) as { url?: string };
+    if (cfg.url) BASE = cfg.url.replace(/\/$/, '');
+  } catch {
+    // оставляем пустой BASE — запросы упадут с понятной ошибкой сети
+  }
+}
 
 let token: string | null = localStorage.getItem('lunacy_token');
 

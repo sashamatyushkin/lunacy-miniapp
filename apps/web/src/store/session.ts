@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { get, getToken, post, setToken } from '../lib/api';
+import { get, getToken, post, resolveApiBase, setToken } from '../lib/api';
 import { tg } from '../lib/telegram';
 import type { User } from '../lib/types';
 
@@ -21,6 +21,9 @@ export const useSession = create<State>((set, getState) => ({
   login: async () => {
     if (getState().status === 'loading') return;
     set({ status: 'loading', error: null });
+
+    // На Pages адрес API приходит из api-endpoint.json — до него сеть недоступна.
+    await resolveApiBase();
 
     // A stored JWT outlives a single launch, so skip the round trip when it
     // is still valid — this also keeps the app usable if initData went stale.

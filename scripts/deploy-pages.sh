@@ -21,6 +21,8 @@ PAGES_URL="https://$OWNER.github.io/$REPO/"
 echo "1/4  сборка (api=$API_PUBLIC_URL, base=$BASE)"
 # VITE_API_URL намеренно пуст: адрес API читается на старте из api-endpoint.json,
 # иначе каждая смена туннеля требовала бы пересборки и повторной публикации.
+# Чистим кэши: инкрементальный tsc и dep-кэш vite иначе отдают старый бандл.
+rm -rf apps/web/dist apps/web/tsconfig.tsbuildinfo node_modules/.vite
 VITE_BASE="$BASE" VITE_API_URL="" npm run --silent build --workspace=apps/web
 printf '{"url":"%s"}\n' "$API_PUBLIC_URL" > apps/web/dist/api-endpoint.json
 # Pages не умеет SPA-фолбэк — 404 отдаём тем же index.html

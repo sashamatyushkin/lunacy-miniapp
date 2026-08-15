@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { get } from '../lib/api';
-import type { Category, Product } from '../lib/types';
+import { getCategories, getProducts } from '../lib/data';
 import { Screen, ScreenHeader } from '../components/Screen';
 import { ProductCard } from '../components/ProductCard';
 import { EmptyState, ErrorState, ProductGridSkeleton } from '../components/ui';
@@ -24,16 +23,11 @@ export default function Catalog() {
     return () => clearTimeout(t);
   }, [q]);
 
-  const categories = useQuery({ queryKey: ['categories'], queryFn: () => get<Category[]>('/api/categories') });
+  const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories });
 
   const products = useQuery({
     queryKey: ['products', category, debounced],
-    queryFn: () => {
-      const sp = new URLSearchParams({ take: '60' });
-      if (category) sp.set('category', category);
-      if (debounced) sp.set('q', debounced);
-      return get<{ items: Product[]; total: number }>(`/api/products?${sp}`);
-    },
+    queryFn: () => getProducts({ category: category || undefined, q: debounced || undefined, take: 60 }),
   });
 
   const pick = (slug: string) => {

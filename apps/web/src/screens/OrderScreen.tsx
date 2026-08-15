@@ -1,8 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { get, post } from '../lib/api';
-import { haptic, tg } from '../lib/telegram';
-import { money, type Order, type OrderStatus } from '../lib/types';
+import { useQuery } from '@tanstack/react-query';
+import { getOrder } from '../lib/orders';
+import { money, type OrderStatus } from '../lib/types';
 import { Screen, ScreenHeader } from '../components/Screen';
 import { Button, ErrorState, Skeleton } from '../components/ui';
 import { useBackButton } from '../lib/tgHooks';
@@ -22,27 +21,7 @@ export default function OrderScreen() {
   const navigate = useNavigate();
   useBackButton(() => navigate('/profile'));
 
-  const query = useQuery({
-    queryKey: ['order', id],
-    queryFn: () => get<Order>(`/api/orders/${id}`),
-    // The order flips to PAID from the bot webhook, so poll briefly after checkout.
-    refetchInterval: (q) => (q.state.data?.status === 'AWAITING_PAYMENT' ? 3000 : false),
-  });
-
-  const pay = useMutation({
-    mutationFn: () => post<{ invoiceUrl: string }>(`/api/orders/${id}/pay`),
-    onSuccess: ({ invoiceUrl }) => {
-      if (tg?.openInvoice) {
-        tg.openInvoice(invoiceUrl, (status) => {
-          if (status === 'paid') haptic.success();
-          void query.refetch();
-        });
-      } else {
-        window.open(invoiceUrl, '_blank', 'noopener');
-      }
-    },
-    onError: () => haptic.error(),
-  });
+  const query = useQuery({ queryKey: ['order', id], queryFn: () => getOrder(id) });
 
   if (query.isLoading) {
     return (
@@ -60,19 +39,19 @@ export default function OrderScreen() {
   }
 
   const order = query.data;
-  const paid = order.status === 'PAID' || order.status === 'SHIPPED' || order.status === 'DONE';
+  const done = order.status === 'PAID' || order.status === 'SHIPPED' || order.status === 'DONE';
 
   return (
     <Screen>
       <ScreenHeader title={`заказ №${order.number}`} />
 
       <div className="card flex flex-col items-center gap-3 px-5 py-7 text-center">
-        {paid ? <SixSeven compact /> : <div className="text-[30px] font-bold tracking-[-0.06em] text-[var(--color-line)]">67</div>}
-        <div className="text-[17px] lowercase">{STATUS_LABEL[order.status]}</div>
+        <SixSeven compact />
+        <div className="text-[17px] lowercase">заказ принят</div>
         <div className="text-[13px] text-[var(--color-muted)]">
-          {paid
-            ? 'оплата подтверждена сервером. напишем в бота, когда передадим в доставку.'
-            : 'ждём подтверждение платежа от telegram — страница обновится сама.'}
+          {done
+            ? 'заказ выполнен.'
+            : 'мы получили ваш заказ и свяжемся с вами в telegram, чтобы подтвердить и рассчитать доставку.'}
         </div>
       </div>
 
@@ -97,18 +76,7 @@ export default function OrderScreen() {
         <div className="text-[var(--color-muted)]">{order.address}</div>
       </div>
 
-      {order.status === 'AWAITING_PAYMENT' && (
-        <div className="mt-5">
-          <Button loading={pay.isPending} onClick={() => pay.mutate()}>
-            оплатить · {money(order.total)}
-          </Button>
-          {pay.isError && (
-            <p className="mt-2 text-center text-[12px] text-[#e08b8b]">{(pay.error as Error).message}</p>
-          )}
-        </div>
-      )}
-
-      <div className="mt-3">
+      <div className="mt-5">
         <Button variant="ghost" onClick={() => navigate('/catalog')}>
           вернуться в каталог
         </Button>

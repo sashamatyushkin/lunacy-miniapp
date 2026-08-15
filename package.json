@@ -14,9 +14,11 @@
     "db:migrate": "npm run prisma:migrate --workspace=apps/api",
     "db:seed": "npm run prisma:seed --workspace=apps/api",
     "bootstrap": "npm install && npm run db:up && sleep 4 && npm run db:migrate && npm run db:seed",
-    "up": "bash scripts/dev-up.sh",
-    "down": "bash scripts/dev-down.sh",
     "deploy": "bash scripts/deploy-pages.sh",
-    "endpoint": "bash scripts/publish-endpoint.sh"
+    "endpoint": "bash scripts/publish-endpoint.sh",
+    "bot": "tsx bot/index.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2"
   }
 }

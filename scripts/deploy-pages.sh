@@ -10,31 +10,19 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-set -a; source .env; set +a
-: "${API_PUBLIC_URL:?API_PUBLIC_URL не задан — сначала npm run up}"
-
 REPO="${PAGES_REPO:-lunacy-miniapp}"
 OWNER=$(gh api user --jq .login)
 BASE="/$REPO/"
 PAGES_URL="https://$OWNER.github.io/$REPO/"
 
-echo "1/4  сборка (api=$API_PUBLIC_URL, base=$BASE)"
-# VITE_API_URL намеренно пуст: адрес API читается на старте из api-endpoint.json,
-# иначе каждая смена туннеля требовала бы пересборки и повторной публикации.
-# Чистим кэши и зовём vite напрямую в режиме production. Важно: скрипт выше
-# сделал `source .env`, где NODE_ENV=development — если не переопределить,
-# Vite соберёт dev-бандл, в котором ветка чтения api-endpoint.json вырезается
-# тришейкингом, и опубликованная страница будет звать API по своему origin.
+echo "1/4  сборка статики (VITE_STATIC=1, base=$BASE)"
+# Как в LIT: полностью статическая витрина. Каталог зашит в JSON, корзина и
+# заказы — в localStorage, авторизация клиентская из Telegram. Никакого бэкенда,
+# туннеля, CORS и вебхуков — Pages отдаёт статику всегда, даже когда Mac выключен.
+# NODE_ENV=production обязателен (в .env он development, иначе Vite соберёт dev-бандл).
 rm -rf apps/web/dist apps/web/tsconfig.tsbuildinfo node_modules/.vite
-NODE_ENV=production VITE_BASE="$BASE" VITE_API_URL="" \
+NODE_ENV=production VITE_STATIC=1 VITE_BASE="$BASE" VITE_API_URL="" \
   npx --workspace=apps/web vite build --mode production
-printf '{"url":"%s"}\n' "$API_PUBLIC_URL" > apps/web/dist/api-endpoint.json
-# Страховка: собранный бандл обязан читать api-endpoint.json в рантайме,
-# иначе смена туннеля не подхватится, а страница будет молча звать мёртвый API.
-grep -q "api-endpoint" apps/web/dist/assets/*.js || {
-  echo "     СБОРКА без рантайм-эндпоинта — прерываю (кэш vite?). Повторите."
-  exit 1
-}
 
 # Pages не умеет SPA-фолбэк — 404 отдаём тем же index.html
 cp apps/web/dist/index.html apps/web/dist/404.html

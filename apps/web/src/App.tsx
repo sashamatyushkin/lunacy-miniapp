@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { BottomNav } from './components/BottomNav';
-import { Button, ErrorState, Spinner } from './components/ui';
+import { Spinner } from './components/ui';
 import { SixSeven } from './components/SixSeven';
 import { useSession } from './store/session';
 import { syncSafeArea, tg } from './lib/telegram';
@@ -24,25 +24,16 @@ function Fallback() {
   );
 }
 
-function Boot({ error, onRetry }: { error: string | null; onRetry: () => void }) {
+function Boot() {
   return (
     <div className="grid h-full place-items-center px-8">
-      {error ? (
-        <div className="w-full max-w-[300px]">
-          <ErrorState message={error} />
-          <Button variant="ghost" onClick={onRetry}>
-            попробовать снова
-          </Button>
-        </div>
-      ) : (
-        <SixSeven />
-      )}
+      <SixSeven />
     </div>
   );
 }
 
 export default function App() {
-  const { status, error, login } = useSession();
+  const { status, login } = useSession();
   const { pathname } = useLocation();
 
   useEffect(() => {
@@ -61,7 +52,7 @@ export default function App() {
   }, [pathname]);
 
   if (status !== 'ready') {
-    return <Boot error={status === 'error' ? error : null} onRetry={login} />;
+    return <Boot />;
   }
 
   const showNav = !/^\/(checkout|order)\b/.test(pathname);

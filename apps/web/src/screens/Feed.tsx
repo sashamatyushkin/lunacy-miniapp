@@ -1,8 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { get } from '../lib/api';
-import type { Category, Product, Story } from '../lib/types';
+import { getCategories, getProducts, getStories } from '../lib/data';
 import { Screen } from '../components/Screen';
 import { Keyboard3D } from '../components/Keyboard3D';
 import { SixSeven } from '../components/SixSeven';
@@ -23,11 +22,11 @@ export default function Feed() {
     track('screen_view', { screen: 'feed' });
   }, []);
 
-  const stories = useQuery({ queryKey: ['stories'], queryFn: () => get<Story[]>('/api/stories') });
-  const categories = useQuery({ queryKey: ['categories'], queryFn: () => get<Category[]>('/api/categories') });
+  const stories = useQuery({ queryKey: ['stories'], queryFn: getStories });
+  const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories });
   const popular = useQuery({
     queryKey: ['products', 'popular'],
-    queryFn: () => get<{ items: Product[] }>('/api/products?popular=1&take=6'),
+    queryFn: () => getProducts({ popular: true, take: 6 }),
   });
 
   return (

@@ -11,7 +11,7 @@ const items = [
 
 export function BottomNav() {
   const { pathname } = useLocation();
-  const { data: cart } = useCart();
+  const cart = useCart();
 
   return (
     <nav
@@ -32,9 +32,9 @@ export function BottomNav() {
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" stroke={active ? 'var(--color-ink)' : 'var(--color-muted)'}>
                   <path d={it.icon} />
                 </svg>
-                {it.to === '/cart' && (cart?.count ?? 0) > 0 && (
+                {it.to === '/cart' && cart.count > 0 && (
                   <span className="absolute -right-2 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--color-ink)] px-1 text-[9px] font-bold text-[var(--color-bg)]">
-                    {cart!.count}
+                    {cart.count}
                   </span>
                 )}
               </span>

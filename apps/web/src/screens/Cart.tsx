@@ -3,48 +3,26 @@ import { Link, useNavigate } from 'react-router-dom';
 import { money } from '../lib/types';
 import { Screen, ScreenHeader } from '../components/Screen';
 import { ProductImage } from '../components/ProductCard';
-import { Button, EmptyState, ErrorState, Skeleton } from '../components/ui';
-import { useCart, useCartMutations } from '../store/cart';
+import { Button, EmptyState } from '../components/ui';
+import { cart, useCart } from '../store/cart';
 import { useMainButton } from '../lib/tgHooks';
 import { isTelegram } from '../lib/telegram';
 import { track } from '../lib/analytics';
 
 export default function Cart() {
   const navigate = useNavigate();
-  const { data, isLoading, isError, error, refetch } = useCart();
-  const { setQty, clear } = useCartMutations();
+  const data = useCart();
+  const empty = data.items.length === 0;
 
   useEffect(() => {
     track('cart_open');
   }, []);
 
-  const empty = !data || data.items.length === 0;
-
   useMainButton({
-    text: data ? `оформить · ${money(data.total)}` : 'оформить',
+    text: `оформить · ${money(data.total)}`,
     visible: !empty,
     onClick: () => navigate('/checkout'),
   });
-
-  if (isLoading) {
-    return (
-      <Screen>
-        <ScreenHeader title="корзина" />
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="mb-2.5 h-[92px]" />
-        ))}
-      </Screen>
-    );
-  }
-
-  if (isError) {
-    return (
-      <Screen>
-        <ScreenHeader title="корзина" />
-        <ErrorState message={(error as Error).message} onRetry={() => refetch()} />
-      </Screen>
-    );
-  }
 
   if (empty) {
     return (
@@ -68,11 +46,7 @@ export default function Cart() {
       <ScreenHeader
         title="корзина"
         right={
-          <button
-            className="text-[12px] lowercase text-[var(--color-muted)]"
-            onClick={() => clear.mutate()}
-            disabled={clear.isPending}
-          >
+          <button className="text-[12px] lowercase text-[var(--color-muted)]" onClick={() => cart.clear()}>
             очистить
           </button>
         }
@@ -81,7 +55,10 @@ export default function Cart() {
       <div className="flex flex-col gap-2.5">
         {data.items.map((item) => (
           <div key={item.id} className="card flex gap-3 p-2.5">
-            <Link to={`/product/${item.product.slug}`} className="h-[68px] w-[68px] shrink-0 overflow-hidden bg-[var(--color-surface)]">
+            <Link
+              to={`/product/${item.product.slug}`}
+              className="h-[68px] w-[68px] shrink-0 overflow-hidden bg-[var(--color-surface)]"
+            >
               <ProductImage product={item.product} className="h-full w-full" />
             </Link>
             <div className="flex min-w-0 flex-1 flex-col justify-between">
@@ -89,17 +66,9 @@ export default function Cart() {
               <div className="flex items-center justify-between">
                 <span className="text-[14px] font-semibold">{money(item.product.price * item.qty)}</span>
                 <div className="flex items-center gap-2">
-                  <QtyButton
-                    label="−"
-                    disabled={setQty.isPending}
-                    onClick={() => setQty.mutate({ productId: item.productId, qty: item.qty - 1 })}
-                  />
+                  <QtyButton label="−" onClick={() => cart.setQty(item.productId, item.qty - 1)} />
                   <span className="w-5 text-center text-[13px]">{item.qty}</span>
-                  <QtyButton
-                    label="+"
-                    disabled={setQty.isPending || item.qty >= 99}
-                    onClick={() => setQty.mutate({ productId: item.productId, qty: item.qty + 1 })}
-                  />
+                  <QtyButton label="+" disabled={item.qty >= 99} onClick={() => cart.setQty(item.productId, item.qty + 1)} />
                 </div>
               </div>
             </div>

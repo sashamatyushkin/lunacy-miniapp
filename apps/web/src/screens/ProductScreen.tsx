@@ -1,26 +1,25 @@
 import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { get } from '../lib/api';
-import { money, type Product } from '../lib/types';
+import { getProduct } from '../lib/data';
+import { money } from '../lib/types';
 import { Screen } from '../components/Screen';
 import { ProductCard, ProductImage } from '../components/ProductCard';
 import { Button, ErrorState, Section, Skeleton } from '../components/ui';
 import { useBackButton, useMainButton } from '../lib/tgHooks';
 import { isTelegram } from '../lib/telegram';
-import { useCartMutations } from '../store/cart';
+import { cart } from '../store/cart';
 import { track } from '../lib/analytics';
 
 export default function ProductScreen() {
   const { slug = '' } = useParams();
   const navigate = useNavigate();
-  const { add } = useCartMutations();
 
   useBackButton(() => navigate(-1));
 
   const query = useQuery({
     queryKey: ['product', slug],
-    queryFn: () => get<{ product: Product; related: Product[] }>(`/api/products/${slug}`),
+    queryFn: () => getProduct(slug),
   });
 
   const product = query.data?.product;
@@ -31,14 +30,14 @@ export default function ProductScreen() {
 
   const addToCart = () => {
     if (!product) return;
-    add.mutate({ productId: product.id, qty: 1 }, { onSuccess: () => navigate('/cart') });
+    cart.add(product, 1);
+    navigate('/cart');
   };
 
   useMainButton({
     text: product ? `в корзину · ${money(product.price)}` : 'загрузка',
     visible: Boolean(product?.inStock),
-    active: !add.isPending,
-    progress: add.isPending,
+    active: true,
     onClick: addToCart,
   });
 
@@ -106,7 +105,7 @@ export default function ProductScreen() {
       {/* Outside Telegram there is no MainButton, so the CTA lives in the page. */}
       {!isTelegram && product.inStock && (
         <div className="mt-6">
-          <Button loading={add.isPending} onClick={addToCart}>
+          <Button onClick={addToCart}>
             в корзину · {money(product.price)}
           </Button>
         </div>

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "cmsu7yx04001hje9soi8ph6ko",
+    "title": "jetcar 67",
+    "caption": "бустер показывает 67 у гиперкара",
+    "mediaUrl": "/stories/story-1.webp",
+    "kind": "image",
+    "accent": "#7fd4e8"
+  },
+  {
+    "id": "cmsu7yx04001ije9stakttbd9",
+    "title": "ночная заправка",
+    "caption": "два urus и один вопрос: 6 или 7",
+    "mediaUrl": "/stories/story-2.webp",
+    "kind": "image",
+    "accent": "#9b6bff"
+  },
+  {
+    "id": "cmsu7yx04001jje9sysbo3rv0",
+    "title": "пхукет",
+    "caption": "сетап уехал в отпуск",
+    "mediaUrl": "/stories/story-3.webp",
+    "kind": "image",
+    "accent": "#5ec98a"
+  }
+]

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { get } from '../lib/api';
-import { money, type Order, type User } from '../lib/types';
+import { listOrders } from '../lib/orders';
+import { money } from '../lib/types';
+import { useSession } from '../store/session';
 import { Screen, ScreenHeader } from '../components/Screen';
 import { Button, EmptyState, Section, Skeleton } from '../components/ui';
 import { STATUS_LABEL } from './OrderScreen';
@@ -19,10 +20,10 @@ export default function Profile() {
     track('screen_view', { screen: 'profile' });
   }, []);
 
-  const me = useQuery({ queryKey: ['me'], queryFn: () => get<User>('/api/auth/me') });
-  const orders = useQuery({ queryKey: ['orders'], queryFn: () => get<Order[]>('/api/orders') });
+  const me = useSession((s) => s.user);
+  const orders = useQuery({ queryKey: ['orders'], queryFn: listOrders });
 
-  const refLink = me.data ? `https://t.me/${BOT}/${APP}?startapp=ref_${me.data.refCode}` : '';
+  const refLink = me ? `https://t.me/${BOT}/${APP}?startapp=ref_${me.refCode}` : '';
 
   const share = () => {
     if (!refLink) return;
@@ -49,33 +50,26 @@ export default function Profile() {
 
       <div className="card flex items-center gap-3.5 p-3.5">
         <div className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-full bg-[var(--color-surface)] text-[18px] font-semibold">
-          {me.data?.photoUrl ? (
-            <img src={me.data.photoUrl} alt="" className="h-full w-full object-cover" />
+          {me?.photoUrl ? (
+            <img src={me.photoUrl} alt="" className="h-full w-full object-cover" />
           ) : (
-            (me.data?.firstName?.[0] ?? '·').toUpperCase()
+            (me?.firstName?.[0] ?? '·').toUpperCase()
           )}
         </div>
         <div className="min-w-0">
-          {me.isLoading ? (
-            <Skeleton className="h-5 w-32" />
-          ) : (
-            <>
-              <div className="truncate text-[16px]">
-                {me.data?.firstName} {me.data?.lastName ?? ''}
-              </div>
-              <div className="text-[12px] text-[var(--color-muted)]">
-                {me.data?.username ? `@${me.data.username}` : `id ${me.data?.tgId ?? ''}`}
-              </div>
-            </>
-          )}
+          <div className="truncate text-[16px]">
+            {me?.firstName} {me?.lastName ?? ''}
+          </div>
+          <div className="text-[12px] text-[var(--color-muted)]">
+            {me?.username ? `@${me.username}` : me?.tgId && me.tgId !== '0' ? `id ${me.tgId}` : 'гость'}
+          </div>
         </div>
       </div>
 
       <Section title="приглашай друзей">
         <div className="card p-3.5">
           <p className="text-[13px] text-[var(--color-muted)]">
-            каждый, кто откроет магазин по вашей ссылке, закрепляется за вами. приглашено:{' '}
-            <span className="text-[var(--color-ink)]">{me.data?._count?.referrals ?? 0}</span>
+            делитесь магазином с друзьями — отправьте им ссылку на приложение.
           </p>
           <div className="mt-3 flex gap-2">
             <Button onClick={share}>поделиться</Button>
@@ -88,7 +82,7 @@ export default function Profile() {
 
       <Section title="мои заказы">
         {orders.isLoading ? (
-          [0, 1].map((i) => <Skeleton key={i} className="mb-2.5 h-[72px]" />)
+          <>{[0, 1].map((i) => <Skeleton key={i} className="mb-2.5 h-[72px]" />)}</>
         ) : orders.data?.length === 0 ? (
           <EmptyState
             title="заказов пока нет"

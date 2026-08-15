@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { money } from '../lib/types';
 import { Screen, ScreenHeader } from '../components/Screen';
@@ -30,6 +30,9 @@ export default function Checkout() {
   });
   const [errors, setErrors] = useState<Errors>({});
   const [busy, setBusy] = useState(false);
+  // Оформление само очищает корзину — тогда «пустая корзина → назад» срабатывать
+  // не должно, иначе редирект перебьёт переход на страницу заказа.
+  const placing = useRef(false);
 
   useBackButton(() => navigate(-1));
 
@@ -38,7 +41,7 @@ export default function Checkout() {
   }, [form]);
 
   useEffect(() => {
-    if (data.items.length === 0) navigate('/cart', { replace: true });
+    if (data.items.length === 0 && !placing.current) navigate('/cart', { replace: true });
   }, [data.items.length, navigate]);
 
   const submit = async () => {
@@ -49,6 +52,7 @@ export default function Checkout() {
       return;
     }
     setBusy(true);
+    placing.current = true;
     track('checkout_start', { total: data.total });
     try {
       const order = await createOrder(
@@ -65,6 +69,7 @@ export default function Checkout() {
       navigate(`/order/${order.id}`, { replace: true });
     } catch {
       haptic.error();
+      placing.current = false;
       setBusy(false);
     }
   };

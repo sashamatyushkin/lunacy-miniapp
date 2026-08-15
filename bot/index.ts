@@ -79,5 +79,12 @@ async function poll() {
   }
 }
 
-await setup();
-await poll();
+async function main() {
+  await setup();
+  await poll();
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

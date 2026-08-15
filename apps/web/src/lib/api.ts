@@ -12,14 +12,20 @@ export async function resolveApiBase(): Promise<void> {
   if (BASE) return;
   const sameOrigin = import.meta.env.DEV || window.location.hostname === 'localhost';
   if (sameOrigin) return;
-  try {
-    const res = await fetch(`${import.meta.env.BASE_URL}api-endpoint.json?t=${Date.now()}`, {
-      cache: 'no-store',
-    });
-    const cfg = (await res.json()) as { url?: string };
-    if (cfg.url) BASE = cfg.url.replace(/\/$/, '');
-  } catch {
-    // оставляем пустой BASE — запросы упадут с понятной ошибкой сети
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}api-endpoint.json?t=${Date.now()}`, {
+        cache: 'no-store',
+      });
+      const cfg = (await res.json()) as { url?: string };
+      if (cfg.url) {
+        BASE = cfg.url.replace(/\/$/, '');
+        return;
+      }
+    } catch {
+      // повторим — статика на Pages обычно доступна сразу
+    }
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
   }
 }
 
@@ -45,7 +51,16 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Туннель на dev-машине изредка отдаёт 502/504 или рвёт соединение в момент
+ *  переподключения. Такие сбои временные — молча повторяем, чтобы пользователь
+ *  не видел «нет соединения» из-за одной неудачной секунды. */
+function transient(status: number) {
+  return status === 0 || status === 502 || status === 503 || status === 504;
+}
+
+export async function api<T>(path: string, init: RequestInit = {}, attempt = 0): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
@@ -60,7 +75,16 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
       },
     });
   } catch {
+    if (attempt < 4) {
+      await sleep(600 * (attempt + 1));
+      return api<T>(path, init, attempt + 1);
+    }
     throw new ApiError('нет соединения с сервером', 0);
+  }
+
+  if (transient(res.status) && attempt < 4) {
+    await sleep(600 * (attempt + 1));
+    return api<T>(path, init, attempt + 1);
   }
 
   if (res.status === 401) {
@@ -70,7 +94,17 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();
-  const data = text ? (JSON.parse(text) as unknown) : null;
+  // Туннель на сбое может вернуть HTML-страницу вместо JSON — не роняемся на парсинге.
+  let data: unknown = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    if (attempt < 4) {
+      await sleep(600 * (attempt + 1));
+      return api<T>(path, init, attempt + 1);
+    }
+    throw new ApiError('нет соединения с сервером', 0);
+  }
 
   if (!res.ok) {
     const msg = (data as { error?: string } | null)?.error ?? 'что-то пошло не так';

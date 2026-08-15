@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lunacy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lunacy}
+      POSTGRES_DB: ${POSTGRES_DB:-lunacy}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lunacy}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lunacy}:${POSTGRES_PASSWORD:-lunacy}@db:5432/${POSTGRES_DB:-lunacy}?schema=public
+      PORT: 3001
+      NODE_ENV: production
+      BOT_TOKEN: ${BOT_TOKEN}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_TTL: ${JWT_TTL:-7d}
+      WEBAPP_URL: ${WEBAPP_URL}
+      API_PUBLIC_URL: ${API_PUBLIC_URL}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      PAYMENT_CURRENCY: ${PAYMENT_CURRENCY:-XTR}
+      PAYMENT_PROVIDER_TOKEN: ${PAYMENT_PROVIDER_TOKEN}
+      RUB_PER_STAR: ${RUB_PER_STAR:-2}
+      INITDATA_TTL: ${INITDATA_TTL:-86400}
+    ports:
+      - "3001:3001"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ${API_PUBLIC_URL}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:

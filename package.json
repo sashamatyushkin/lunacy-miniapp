@@ -1,0 +1,20 @@
+{
+  "name": "lunacy-miniapp",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/api & npm run dev --workspace=apps/web",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "build": "npm run build --workspace=apps/api && npm run build --workspace=apps/web",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "npm run prisma:migrate --workspace=apps/api",
+    "db:seed": "npm run prisma:seed --workspace=apps/api",
+    "bootstrap": "npm install && npm run db:up && sleep 4 && npm run db:migrate && npm run db:seed",
+    "up": "bash scripts/dev-up.sh",
+    "down": "bash scripts/dev-down.sh"
+  }
+}

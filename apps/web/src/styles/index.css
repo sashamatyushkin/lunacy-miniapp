@@ -1,0 +1,131 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------
+   Design tokens — lifted verbatim from lunacy.ru's :root block so the
+   Mini App and the site stay the same product.
+   ------------------------------------------------------------------ */
+@theme {
+  --color-bg: #0e0e0e;
+  --color-nav: #161616;
+  --color-surface: #212121;
+  --color-card: #2b2b2b;
+  --color-card-alt: #242424;
+  --color-line: #363636;
+  --color-muted: #686868;
+  --color-soft: #b6b6b6;
+  --color-ink: #f4f4f4;
+  --color-accent: #ffffff;
+  --color-grid: #d9d9d9;
+
+  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --radius-card: 3px;
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  /* Fallbacks; overwritten from JS with the real Telegram insets. */
+  --safe-top: 0px;
+  --safe-bottom: 0px;
+  --nav-h: 62px;
+  color-scheme: dark;
+}
+
+/* Everything here must live in @layer base: unlayered rules outrank every
+   Tailwind utility, which would silently break `normal-case`, text colours, etc. */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* The whole product speaks in lowercase — matches lunacy.ru's headings. */
+  h1,
+  h2,
+  h3 {
+    text-transform: lowercase;
+    letter-spacing: -0.035em;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
+.scroll-y {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.no-bar::-webkit-scrollbar { display: none; }
+.no-bar { scrollbar-width: none; }
+
+@layer components {
+  .card {
+    background: var(--color-card);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+  .section-title {
+    font-size: 20px;
+    text-transform: lowercase;
+    letter-spacing: -0.035em;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  .chip {
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    color: var(--color-soft);
+    padding: 8px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  }
+  .chip[data-active='true'] {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-bg);
+  }
+}
+
+/* skeleton shimmer */
+.sk {
+  background: linear-gradient(90deg, #1a1a1a 25%, #242424 37%, #1a1a1a 63%);
+  background-size: 400% 100%;
+  animation: sk 1.3s ease infinite;
+  border-radius: var(--radius-card);
+}
+@keyframes sk {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

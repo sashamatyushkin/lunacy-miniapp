@@ -60,53 +60,34 @@ pkill -f "node.*vite" 2>/dev/null || true
 for _ in $(seq 1 40); do sleep 0.5; curl -sf -o /dev/null http://localhost:5173/ && break; done
 curl -sf -o /dev/null http://localhost:5173/ || { echo "     Vite не поднялся, лог: $WEB_LOG"; exit 1; }
 
-echo "4/5  туннель (стабильный $URL)"
-pkill -f "tunnel-keepalive" 2>/dev/null || true
+echo "4/5  туннель + супервизор"
+# Супервизор держит туннель живым и при КАЖДОЙ смене адреса сам обновляет
+# вебхук и api-endpoint.json. Поэтому нестабильность бесплатных туннелей
+# (localtunnel не всегда даёт тот же поддомен, tunnelmole вовсе меняет адрес)
+# перестаёт что-либо ломать: система сходится к текущему адресу за секунды.
+pkill -f "tunnel-supervisor" 2>/dev/null || true
 pkill -f "localtunnel" 2>/dev/null || true
 pkill -f "cloudflared tunnel" 2>/dev/null || true
 pkill -f "tunnelmole" 2>/dev/null || true
-: > "$TUN_LOG"
-(nohup bash scripts/tunnel-keepalive.sh "$TUN_LOG" > /dev/null 2>&1 &)
+: > "$TUN_LOG"; rm -f /tmp/lunacy-tunnel-url
+(nohup bash scripts/tunnel-supervisor.sh > /dev/null 2>&1 &)
 
-ok=""
 for _ in $(seq 1 30); do
-  sleep 2
-  curl -sf -m 8 -o /dev/null -H "bypass-tunnel-reminder: 1" "$URL/api/categories" && { ok=1; break; }
+  sleep 3
+  URL=$(cat /tmp/lunacy-tunnel-url 2>/dev/null || true)
+  [ -n "$URL" ] && break
 done
-if [ -z "$ok" ]; then
-  echo "     Фиксированный поддомен не поднялся (возможно занят). Пробую любой доступный туннель…"
-  pkill -f "tunnel-keepalive" 2>/dev/null || true
-  URL=$(bash scripts/tunnel.sh "$TUN_LOG") || { echo "     Туннель не поднялся. Лог: $TUN_LOG"; exit 1; }
-  python3 - "$URL" <<'PY'
-import re, sys
-url = sys.argv[1]; env = open('.env', encoding='utf-8').read()
-env = re.sub(r'^API_PUBLIC_URL=.*$', f'API_PUBLIC_URL={url}', env, flags=re.M)
-env = re.sub(r'^CORS_ORIGIN=.*$', f'CORS_ORIGIN=http://localhost:5173,{url},https://sashamatyushkin.github.io', env, flags=re.M)
-open('.env', 'w', encoding='utf-8').write(env)
-PY
-  set -a; source .env; set +a
-  start_api
-fi
+[ -n "$URL" ] || { echo "     Туннель не поднялся. Лог: $TUN_LOG"; exit 1; }
 echo "     $URL"
 
 echo "5/5  бот"
+# супервизор уже поставил вебхук на $URL; здесь — кнопка меню (на Pages) и команды
 API="https://api.telegram.org/bot$BOT_TOKEN"
-curl -sS -X POST "$API/setWebhook" \
-  -d "url=$URL/api/telegram/webhook" \
-  -d "secret_token=$TELEGRAM_WEBHOOK_SECRET" \
-  -d "drop_pending_updates=true" \
-  -d 'allowed_updates=["message","pre_checkout_query"]' > /dev/null
-
 APP_URL="${PAGES_URL:-$URL}"
 curl -sS -X POST "$API/setChatMenuButton" -H 'Content-Type: application/json' \
   -d "{\"menu_button\":{\"type\":\"web_app\",\"text\":\"магазин\",\"web_app\":{\"url\":\"$APP_URL\"}}}" > /dev/null
 curl -sS -X POST "$API/setMyCommands" -H 'Content-Type: application/json' \
   -d '{"commands":[{"command":"start","description":"открыть магазин"}]}' > /dev/null
-
-# сообщить опубликованному фронтенду актуальный адрес API
-if [ -n "${PAGES_URL:-}" ]; then
-  bash scripts/publish-endpoint.sh >/dev/null 2>&1 || echo "     не удалось обновить api-endpoint.json — запустите npm run deploy"
-fi
 
 BOT=$(curl -sS "$API/getMe" | python3 -c "import sys,json;print(json.load(sys.stdin)['result']['username'])")
 

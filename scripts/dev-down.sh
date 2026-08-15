@@ -7,6 +7,7 @@ set -a; source .env 2>/dev/null; set +a
 
 [ -n "${BOT_TOKEN:-}" ] && curl -sS -X POST "https://api.telegram.org/bot$BOT_TOKEN/deleteWebhook" > /dev/null
 
+pkill -f "tunnel-supervisor" 2>/dev/null
 pkill -f "cloudflared tunnel" 2>/dev/null
 pkill -f tunnelmole 2>/dev/null
 pkill -f localtunnel 2>/dev/null

@@ -71,7 +71,7 @@ export default function Feed() {
           <div className="flex flex-col items-center gap-4 px-5 py-7 text-center">
             <SixSeven />
             <div>
-              <div className="text-[19px] font-semibold lowercase tracking-tight">шесть… семь</div>
+              <div className="text-[19px] font-semibold lowercase tracking-tight">six… seven</div>
               <p className="mx-auto mt-1.5 max-w-[250px] text-[13px] text-[var(--color-muted)]">
                 мышка или клавиатура? 6 или 7? выбирай не глядя — обе в наличии.
               </p>

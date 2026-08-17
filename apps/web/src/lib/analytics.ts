@@ -11,6 +11,7 @@ export type EventName =
   | 'cart_open'
   | 'checkout_start'
   | 'payment_open'
+  | 'payment_success'
   | 'story_open'
   | 'referral_share';
 

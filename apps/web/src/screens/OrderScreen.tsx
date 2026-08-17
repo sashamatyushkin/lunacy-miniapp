@@ -46,11 +46,15 @@ export default function OrderScreen() {
       <ScreenHeader title={`заказ №${order.number}`} />
 
       <div className="card flex flex-col items-center gap-3 px-5 py-7 text-center">
-        <SixSeven compact />
-        <div className="text-[17px] lowercase">заказ принят</div>
+        {done ? (
+          <span className="grid h-14 w-14 place-items-center rounded-full bg-[#4ea86e]/15 text-[26px] text-[#5ec98a]">✓</span>
+        ) : (
+          <SixSeven compact />
+        )}
+        <div className="text-[18px] lowercase">{done ? 'оплачено' : 'заказ принят'}</div>
         <div className="text-[13px] text-[var(--color-muted)]">
           {done
-            ? 'заказ выполнен.'
+            ? 'спасибо! заказ оплачен и передан в сборку — напишем в telegram по доставке.'
             : 'мы получили ваш заказ и свяжемся с вами в telegram, чтобы подтвердить и рассчитать доставку.'}
         </div>
       </div>

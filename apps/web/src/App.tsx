@@ -13,6 +13,7 @@ const Catalog = lazy(() => import('./screens/Catalog'));
 const ProductScreen = lazy(() => import('./screens/ProductScreen'));
 const Cart = lazy(() => import('./screens/Cart'));
 const Checkout = lazy(() => import('./screens/Checkout'));
+const Payment = lazy(() => import('./screens/Payment'));
 const OrderScreen = lazy(() => import('./screens/OrderScreen'));
 const Profile = lazy(() => import('./screens/Profile'));
 
@@ -107,7 +108,7 @@ export default function App() {
     return <Boot />;
   }
 
-  const showNav = !/^\/(checkout|order)\b/.test(pathname);
+  const showNav = !/^\/(checkout|pay|order)\b/.test(pathname);
 
   return (
     <div className="h-full">
@@ -118,6 +119,7 @@ export default function App() {
           <Route path="/product/:slug" element={<ProductScreen />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/pay/:id" element={<Payment />} />
           <Route path="/order/:id" element={<OrderScreen />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<Navigate to="/" replace />} />

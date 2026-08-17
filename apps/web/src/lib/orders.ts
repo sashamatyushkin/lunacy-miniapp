@@ -61,3 +61,17 @@ export async function getOrder(id: string): Promise<Order> {
   }
   return get<Order>(`/api/orders/${id}`);
 }
+
+/** Демо-оплата: помечаем заказ оплаченным в localStorage. Реальных списаний нет. */
+export function markPaid(id: string): Order | null {
+  const orders = readLocal();
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) return null;
+  orders[idx] = {
+    ...orders[idx],
+    status: 'PAID',
+    payment: { status: 'PAID', currency: 'RUB', amount: orders[idx].total },
+  };
+  localStorage.setItem(KEY, JSON.stringify(orders));
+  return orders[idx];
+}

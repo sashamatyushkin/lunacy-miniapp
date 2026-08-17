@@ -66,7 +66,7 @@ export default function Checkout() {
       );
       cart.clear();
       haptic.success();
-      navigate(`/order/${order.id}`, { replace: true });
+      navigate(`/pay/${order.id}`, { replace: true });
     } catch {
       haptic.error();
       placing.current = false;
@@ -75,7 +75,7 @@ export default function Checkout() {
   };
 
   useMainButton({
-    text: `оформить · ${money(data.total)}`,
+    text: `к оплате · ${money(data.total)}`,
     active: !busy,
     progress: busy,
     onClick: submit,
@@ -111,13 +111,13 @@ export default function Checkout() {
       </div>
 
       <p className="mt-4 text-[11px] leading-relaxed text-[var(--color-muted)]">
-        оформите заказ — свяжемся с вами в telegram, чтобы подтвердить и рассчитать доставку.
+        заполните данные доставки и переходите к оплате.
       </p>
 
       {!isTelegram && (
         <div className="mt-4">
           <Button loading={busy} onClick={submit}>
-            оформить · {money(data.total)}
+            к оплате · {money(data.total)}
           </Button>
         </div>
       )}

@@ -1,76 +1,84 @@
 import { useEffect, useMemo, useRef } from 'react';
 
 /**
- * Black Pearl, которая собирается на скролле — по принципу «scroll-scrubbed
- * assembly», как на продуктовых страницах Apple (кадры привязаны к прокрутке).
+ * 60%-клавиатура, которая собирается из клавиш на скролле. Каждая клавиша —
+ * отдельный кейкап (реальная форма, не кусок фото): при p=0 они разлетелись в
+ * 3D, при p=1 сложились в раскладку. Скролл двигает одну переменную --p на сцене.
  *
- * Кадры мы не пекём (нет 3D-модели), но повторяем то, что делает такую сборку
- * дорогой на вид:
- *   • клавиши садятся на ВИДИМУЮ доску (базовый слой — затемнённое фото), а не
- *     возникают в пустоте;
- *   • порядок сборки — из центра наружу, с лёгкой органикой, а не сеткой;
- *   • пружинное замедление (smoothstep) — клавиши плавно «доезжают»;
- *   • motion-blur на летящих клавишах затухает при посадке;
- *   • контактная тень усиливается к финалу.
- * В собранном виде плитки бесшовны — это ровно фото с сайта, 1:1.
- *
- * Скролл двигает одну переменную --p на сцене → перерисовывается один узел.
+ * Раскраска — под Black Pearl с сайта: деревянный корпус, кремовые кейкапы,
+ * тёмно-синие модификаторы, коричневые акценты (клавиши 6 и 7 — тот самый «67»).
  */
 
-const COLS = 15;
-const ROWS = 6;
-const IMG = `${import.meta.env.BASE_URL}keyboard-blackpearl.webp`;
-const RATIO = 1321 / 611;
+// ширины клавиш в юнитах (1u = обычная клавиша)
+const ROWS: number[][] = [
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+  [1.5, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1.5],
+  [1.75, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.25],
+  [2.25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2.75],
+  [1.25, 1.25, 1.25, 6.25, 1.25, 1.25, 1.25, 1.25],
+];
 
+// клавиши 6 и 7 в цифровом ряду — акцент 67
+const LEGENDS: Record<string, string> = { '0-6': '6', '0-7': '7' };
+
+/** xorshift-хэш — разлёт стабилен между рендерами и перезагрузками. */
 function rnd(seed: number) {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 }
 
-type Tile = { key: string; style: React.CSSProperties };
+type Variant = 'cream' | 'dark' | 'accent';
+type Key = { id: string; row: number; w: number; legend?: string; variant: Variant; style: React.CSSProperties };
 
-function buildTiles(): Tile[] {
-  const tiles: Tile[] = [];
-  const cx = (COLS - 1) / 2;
-  const cy = (ROWS - 1) / 2;
-  const maxDist = Math.hypot(cx, cy);
+function variantFor(id: string, r: number, i: number, rowLen: number): Variant {
+  if (id in LEGENDS) return 'accent'; // 6 и 7
+  if (r === ROWS.length - 1) return 'dark'; // нижний ряд модификаторов
+  if (r >= 1 && (i === 0 || i === rowLen - 1)) return 'dark'; // крайние (Tab/Caps/Shift/Enter)
+  return 'cream';
+}
+
+function buildKeys(): Key[] {
+  const keys: Key[] = [];
   let n = 0;
-  for (let r = 0; r < ROWS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      const seed = n;
-      // порядок сборки: из центра наружу + немного органики
-      const radial = Math.hypot(c - cx, r - cy) / maxDist;
-      const order = Math.min(1, radial * 0.82 + rnd(seed + 5) * 0.18);
-      tiles.push({
-        key: `${r}-${c}`,
+  ROWS.forEach((row, r) => {
+    row.forEach((w, i) => {
+      const id = `${r}-${i}`;
+      const seed = n++;
+      keys.push({
+        id,
+        row: r,
+        w,
+        legend: LEGENDS[id],
+        variant: variantFor(id, r, i, row.length),
         style: {
-          backgroundImage: `url(${IMG})`,
-          backgroundSize: `${COLS * 100}% ${ROWS * 100}%`,
-          backgroundPosition: `${(c / (COLS - 1)) * 100}% ${(r / (ROWS - 1)) * 100}%`,
-          ['--o' as string]: order.toFixed(3),
-          ['--jx' as string]: ((rnd(seed) - 0.5) * 40).toFixed(1),
-          ['--rot' as string]: ((rnd(seed + 9) - 0.5) * 26).toFixed(1),
+          flexGrow: w,
+          flexBasis: 0,
+          ['--dx' as string]: ((rnd(seed) - 0.5) * 260).toFixed(1),
+          ['--dy' as string]: (-40 - rnd(seed + 11) * 300).toFixed(1),
+          ['--dz' as string]: (60 + rnd(seed + 23) * 320).toFixed(1),
+          ['--rx' as string]: ((rnd(seed + 31) - 0.5) * 140).toFixed(1),
+          ['--ry' as string]: ((rnd(seed + 47) - 0.5) * 140).toFixed(1),
+          ['--rz' as string]: ((rnd(seed + 53) - 0.5) * 180).toFixed(1),
+          ['--k' as string]: (0.7 + rnd(seed + 71) * 1.1).toFixed(2),
         },
       });
-      n++;
-    }
-  }
-  return tiles;
+    });
+  });
+  return keys;
 }
 
 export function Keyboard3D({ scrollRef }: { scrollRef: React.RefObject<HTMLElement | null> }) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const tiles = useMemo(buildTiles, []);
+  const keys = useMemo(buildKeys, []);
 
   useEffect(() => {
     const el = scrollRef.current;
     const stage = stageRef.current;
     if (!el || !stage) return;
-
     let frame = 0;
     const update = () => {
       frame = 0;
-      const p = Math.min(1, Math.max(0, el.scrollTop / 320));
+      const p = Math.min(1, Math.max(0, el.scrollTop / 300));
       stage.style.setProperty('--p', p.toFixed(4));
     };
     const onScroll = () => {
@@ -88,27 +96,35 @@ export function Keyboard3D({ scrollRef }: { scrollRef: React.RefObject<HTMLEleme
     <div className="kb-track" aria-hidden>
       <div className="kb-wrap">
         <div className="kb-stage" ref={stageRef}>
-          <div className="kb-plate">
-            {/* доска, на которую садятся клавиши */}
-            <div className="kb-base" style={{ backgroundImage: `url(${IMG})` }} />
-            {tiles.map((t) => (
-              <div className="kb-tile" key={t.key} style={t.style} />
-            ))}
+          <div className="kb-case">
+            <div className="kb-plate">
+              {ROWS.map((_row, r) => (
+                <div className="kb-row" key={r}>
+                  {keys
+                    .filter((k) => k.row === r)
+                    .map((k) => (
+                      <div className={`kb-key kb-key--${k.variant}`} key={k.id} style={k.style}>
+                        {k.legend && <span>{k.legend}</span>}
+                      </div>
+                    ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
       <style>{`
         .kb-track {
-          height: 380px;
+          height: 360px;
           margin: 0 -16px;
           pointer-events: none;
         }
         .kb-wrap {
           position: sticky;
           top: calc(var(--safe-top) + 18px);
-          height: 240px;
-          perspective: 1100px;
-          perspective-origin: 50% 34%;
+          height: 230px;
+          perspective: 900px;
+          perspective-origin: 50% 30%;
         }
         .kb-stage {
           --p: 0;
@@ -118,63 +134,84 @@ export function Keyboard3D({ scrollRef }: { scrollRef: React.RefObject<HTMLEleme
           place-items: center;
           transform-style: preserve-3d;
           transform:
-            rotateX(calc(48deg - var(--p) * 40deg))
-            rotateZ(calc(-8deg + var(--p) * 8deg))
-            scale(calc(0.92 + var(--p) * 0.08));
-          transition: transform 90ms linear;
+            rotateX(calc(60deg - var(--p) * 46deg))
+            rotateZ(calc(-12deg + var(--p) * 12deg))
+            scale(calc(0.86 + var(--p) * 0.14));
+          transition: transform 60ms linear;
+        }
+        /* деревянный корпус Black Pearl */
+        .kb-case {
+          width: min(93vw, 470px);
+          padding: 10px;
+          border-radius: 8px;
+          background: linear-gradient(160deg, #5c4230 0%, #3f2c1c 60%, #33231602 100%), #3f2c1c;
+          border: 1px solid #29190f;
+          box-shadow: 0 26px 60px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 220, 180, 0.12);
+          transform-style: preserve-3d;
+          opacity: calc(0.25 + var(--p) * 0.75);
         }
         .kb-plate {
-          position: relative;
-          width: min(94vw, 480px);
-          aspect-ratio: ${RATIO};
-          display: grid;
-          grid-template-columns: repeat(${COLS}, 1fr);
-          grid-template-rows: repeat(${ROWS}, 1fr);
+          aspect-ratio: 15 / 5.4;
+          padding: 7px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+          border-radius: 4px;
+          background: linear-gradient(180deg, #cbc3b1, #b3ab99);
+          box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
           transform-style: preserve-3d;
-          /* контактная тень крепнет по мере сборки */
-          filter: drop-shadow(
-            0 calc(8px + var(--p) * 22px) calc(18px + var(--p) * 30px)
-            rgba(0, 0, 0, calc(0.28 + var(--p) * 0.34))
-          );
         }
-        .kb-base {
-          position: absolute;
-          inset: 0;
-          grid-area: 1 / 1 / -1 / -1;
-          background-size: cover;
-          background-position: center;
-          border-radius: 6px;
-          filter: brightness(0.32) saturate(0.6) blur(1px);
-          opacity: calc(0.35 + var(--p) * 0.4);
+        .kb-row {
+          display: flex;
+          gap: 3px;
+          flex: 1;
+          transform-style: preserve-3d;
         }
-        .kb-tile {
-          /* локальный прогресс клавиши: центр стартует раньше краёв (--o) */
-          --a: clamp(0, calc((var(--p) - var(--o) * 0.5) / 0.5), 1);
-          /* smoothstep — мягкое пружинное замедление на посадке */
-          --s: calc(var(--a) * var(--a) * (3 - 2 * var(--a)));
-          --d: calc(1 - var(--s));
-          position: relative;
-          background-repeat: no-repeat;
-          background-clip: padding-box;
+        .kb-key {
+          --q: clamp(0, calc((1 - var(--p)) * var(--k)), 1);
+          border-radius: 3px;
+          display: grid;
+          place-items: center;
+          font-size: 9px;
+          font-weight: 700;
+          letter-spacing: -0.02em;
+          box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.5),
+            0 1px 1px rgba(0, 0, 0, 0.25);
           transform:
             translate3d(
-              calc(var(--jx) * var(--d) * 1px),
-              calc(var(--d) * -150px),
-              calc(var(--d) * 175px)
+              calc(var(--dx) * var(--q) * 1px),
+              calc(var(--dy) * var(--q) * 1px),
+              calc(var(--dz) * var(--q) * 1px)
             )
-            rotateX(calc(var(--d) * 52deg))
-            rotateZ(calc(var(--rot) * var(--d) * 1deg))
-            scale(calc(1 + var(--d) * 0.05));
-          transform-origin: 50% 65%;
-          /* motion-blur, гаснет при посадке; лёгкий подсвет к финалу */
-          filter: blur(calc(var(--d) * 3.4px)) brightness(calc(0.62 + var(--s) * 0.38));
-          opacity: calc(0.08 + var(--s) * 0.92);
-          will-change: transform, filter, opacity;
+            rotateX(calc(var(--rx) * var(--q) * 1deg))
+            rotateY(calc(var(--ry) * var(--q) * 1deg))
+            rotateZ(calc(var(--rz) * var(--q) * 1deg));
+          opacity: calc(0.35 + (1 - var(--q)) * 0.65);
+        }
+        /* кремовые кейкапы */
+        .kb-key--cream {
+          background: linear-gradient(180deg, #f5efe3 0%, #e7dfcd 100%);
+          color: #4a3a2a;
+        }
+        /* тёмно-синие модификаторы */
+        .kb-key--dark {
+          background: linear-gradient(180deg, #3d4553 0%, #2a303b 100%);
+          color: #e9e2d2;
+          box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            0 1px 1px rgba(0, 0, 0, 0.3);
+        }
+        /* коричневые акценты — 6 и 7 */
+        .kb-key--accent {
+          background: linear-gradient(180deg, #7d5636 0%, #5a3c22 100%);
+          color: #f3e8d8;
+          font-size: 11px;
+          box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 220, 180, 0.25),
+            0 1px 1px rgba(0, 0, 0, 0.3);
         }
         @media (prefers-reduced-motion: reduce) {
-          .kb-stage { transform: rotateX(14deg); }
-          .kb-tile { transform: none; opacity: 1; filter: none; }
-          .kb-base { opacity: 0; }
+          .kb-stage { transform: rotateX(18deg); }
+          .kb-key { transform: none; opacity: 1; }
+          .kb-case { opacity: 1; }
         }
       `}</style>
     </div>

@@ -9,14 +9,12 @@ import { StoriesRow } from '../components/Stories';
 import { ProductCard } from '../components/ProductCard';
 import { ErrorState, ProductGridSkeleton, Section, Skeleton } from '../components/ui';
 import { track } from '../lib/analytics';
-import { useSession } from '../store/session';
 
 const StoryViewer = lazy(() => import('../components/StoryViewer'));
 
 export default function Feed() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [storyIndex, setStoryIndex] = useState<number | null>(null);
-  const user = useSession((s) => s.user);
 
   useEffect(() => {
     track('screen_view', { screen: 'feed' });
@@ -32,42 +30,34 @@ export default function Feed() {
   return (
     <>
       <Screen ref={scrollRef}>
-        {/* hero */}
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-[11px] uppercase tracking-[0.3em] text-[var(--color-muted)]">lunacy</div>
-            <h1 className="mt-1 text-[27px] leading-[1.05]">
-              игровые девайсы
-              <br />
-              для тех, кто в игре
-            </h1>
-          </div>
-          <div className="shrink-0 opacity-90">
-            <SixSeven compact />
-          </div>
+        {/* бренд по центру, над лентой */}
+        <div className="mb-3 text-center text-[13px] uppercase tracking-[0.42em] text-[var(--color-soft)]">
+          lunacy
         </div>
 
-        <p className="mt-2 max-w-[280px] text-[13px] text-[var(--color-muted)]">
-          {user ? `${user.firstName}, ` : ''}скролль вниз — клавиатура соберётся сама.
+        {/* лента-сторис в самом верху, как в инстаграме */}
+        {stories.isLoading ? (
+          <div className="flex gap-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-[68px] w-[68px] rounded-full" />
+            ))}
+          </div>
+        ) : stories.data?.length ? (
+          <StoriesRow stories={stories.data} onOpen={setStoryIndex} />
+        ) : null}
+
+        {/* призыв к сборке сетапа */}
+        <p className="mt-6 text-center text-[15px] leading-snug text-[var(--color-soft)]">
+          скроль вниз и собирай
+          <br />
+          свой сетап для побед
         </p>
 
+        {/* анимация клавиатуры, собирается по кнопкам на скролле */}
         <Keyboard3D scrollRef={scrollRef} />
 
-        {/* stories */}
-        <Section title="лента">
-          {stories.isLoading ? (
-            <div className="flex gap-3">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} className="h-[68px] w-[68px] rounded-full" />
-              ))}
-            </div>
-          ) : stories.data?.length ? (
-            <StoriesRow stories={stories.data} onOpen={setStoryIndex} />
-          ) : null}
-        </Section>
-
-        {/* 67 block */}
-        <section className="card mt-8 overflow-hidden">
+        {/* руки six seven — единственные на экране, идут после клавиатуры */}
+        <section className="card mt-6 overflow-hidden">
           <div className="flex flex-col items-center gap-4 px-5 py-7 text-center">
             <SixSeven />
             <div>

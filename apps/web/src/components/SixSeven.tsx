@@ -29,17 +29,17 @@ function Palm({ side }: { side: 'l' | 'r' }) {
   );
 }
 
-export function SixSeven({ compact = false }: { compact?: boolean }) {
+export function SixSeven({ compact = false, digits = false }: { compact?: boolean; digits?: boolean }) {
   return (
     <div className={`s67${compact ? ' s67--compact' : ''}`}>
       <div className="s67-hand s67-hand--l">
-        <span className="s67-digit">6</span>
+        {digits && <span className="s67-digit">6</span>}
         <span className="s67-palm">
           <Palm side="l" />
         </span>
       </div>
       <div className="s67-hand s67-hand--r">
-        <span className="s67-digit">7</span>
+        {digits && <span className="s67-digit">7</span>}
         <span className="s67-palm">
           <Palm side="r" />
         </span>

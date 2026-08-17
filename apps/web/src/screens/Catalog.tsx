@@ -75,8 +75,8 @@ export default function Catalog() {
         <EmptyState title="ничего не нашлось" hint="попробуйте другую категорию или запрос" />
       ) : (
         <div className="grid grid-cols-2 gap-2.5">
-          {products.data!.items.map((p) => (
-            <ProductCard key={p.id} product={p} />
+          {products.data!.items.map((p, i) => (
+            <ProductCard key={p.id} product={p} index={i} />
           ))}
         </div>
       )}

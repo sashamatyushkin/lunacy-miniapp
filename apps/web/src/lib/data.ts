@@ -64,14 +64,31 @@ export async function getProducts(params: ProductQuery = {}): Promise<{ items: P
   return get<{ items: Product[]; total: number }>(`/api/products?${sp}`);
 }
 
+/**
+ * «Собери сетап»: по одному товару из каждой категории (клавиатура, мышка,
+ * наушники, коврик, рукав), кроме той, что уже открыта. Так клиент добирает
+ * полный набор в корзину, не выходя с карточки.
+ */
+function buildSetup(current: Product): Product[] {
+  const out: Product[] = [];
+  for (const cat of CATEGORIES) {
+    if (cat.slug === current.category.slug) continue;
+    const pick =
+      PRODUCTS.find((p) => p.category.slug === cat.slug && p.isPopular) ??
+      PRODUCTS.find((p) => p.category.slug === cat.slug);
+    if (pick) out.push(pick);
+  }
+  return out;
+}
+
 export async function getProduct(slug: string): Promise<{ product: Product; related: Product[] }> {
   if (IS_STATIC) {
     const product = PRODUCTS.find((p) => p.slug === slug);
     if (!product) throw new Error('товар не найден');
-    const related = PRODUCTS.filter((p) => p.category.slug === product.category.slug && p.id !== product.id).slice(0, 6);
-    return { product, related };
+    return { product, related: buildSetup(product) };
   }
-  return get<{ product: Product; related: Product[] }>(`/api/products/${slug}`);
+  const res = await get<{ product: Product; related: Product[] }>(`/api/products/${slug}`);
+  return res;
 }
 
 export function productById(id: string): Product | undefined {

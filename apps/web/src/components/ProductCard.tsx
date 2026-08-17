@@ -36,12 +36,14 @@ export function ProductImage({ product, className = '' }: { product: Product; cl
   );
 }
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   return (
     <Link
       to={`/product/${product.slug}`}
       onClick={() => haptic.tap()}
-      className="card group relative flex flex-col overflow-hidden transition active:scale-[0.98]"
+      className="card pc-in group relative flex flex-col overflow-hidden transition active:scale-[0.98]"
+      // лёгкая волна появления при скролле каталога
+      style={{ animationDelay: `${Math.min(index, 12) * 45}ms` }}
     >
       {product.isLimited && (
         <span className="absolute left-2 top-2 z-10 rounded-[2px] bg-[var(--color-ink)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[var(--color-bg)]">
@@ -49,7 +51,10 @@ export function ProductCard({ product }: { product: Product }) {
         </span>
       )}
       <div className="aspect-square w-full overflow-hidden bg-[var(--color-surface)]">
-        <ProductImage product={product} className="h-full w-full" />
+        <ProductImage
+          product={product}
+          className="h-full w-full transition-transform duration-500 ease-out group-hover:scale-105 group-active:scale-105"
+        />
       </div>
       <div className="flex flex-1 flex-col justify-between gap-2 p-3">
         <div className="line-clamp-2 text-[13px] leading-tight text-[var(--color-ink)]">{product.title}</div>

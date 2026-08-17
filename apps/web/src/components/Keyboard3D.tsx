@@ -9,42 +9,47 @@ import { useEffect, useMemo, useRef } from 'react';
  * CSS-переменную --p на сцене — перерисовывается один узел, а не сотня React.
  */
 
-const COLS = 16;
-const ROWS = 7;
+const COLS = 15;
+const ROWS = 6;
 const IMG = `${import.meta.env.BASE_URL}keyboard-blackpearl.webp`;
 const RATIO = 1321 / 611; // пропорции обрезанного фото
 
-/** Детерминированный хэш — разлёт стабилен между рендерами и перезагрузками. */
+/** Детерминированный хэш — небольшой джиттер стабилен между рендерами. */
 function rnd(seed: number) {
-  let x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
 }
 
 type Tile = { key: string; style: React.CSSProperties };
 
+/**
+ * Клавиши «прилетают» по очереди и встают на свои места, а не разлетаются
+ * случайными квадратами. Каждая плитка = один кейкап: у неё свой порядок сборки
+ * (--o, волной слева-направо сверху-вниз) и лёгкий вертикальный сброс сверху.
+ */
 function buildTiles(): Tile[] {
   const tiles: Tile[] = [];
+  const total = COLS * ROWS;
   let n = 0;
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
-      const seed = n++;
+      const seed = n;
+      // порядок сборки: по диагонали слева-сверху — читается как «набор» клавиш
+      const order = (r + c) / (ROWS + COLS - 2);
       tiles.push({
         key: `${r}-${c}`,
         style: {
-          // кусочек общего фото
           backgroundImage: `url(${IMG})`,
           backgroundSize: `${COLS * 100}% ${ROWS * 100}%`,
           backgroundPosition: `${(c / (COLS - 1)) * 100}% ${(r / (ROWS - 1)) * 100}%`,
-          // вектор разлёта + индивидуальная скорость сборки
-          ['--dx' as string]: ((rnd(seed) - 0.5) * 320).toFixed(1),
-          ['--dy' as string]: (-60 - rnd(seed + 11) * 320).toFixed(1),
-          ['--dz' as string]: (120 + rnd(seed + 23) * 420).toFixed(1),
-          ['--rx' as string]: ((rnd(seed + 31) - 0.5) * 180).toFixed(1),
-          ['--ry' as string]: ((rnd(seed + 47) - 0.5) * 180).toFixed(1),
-          ['--rz' as string]: ((rnd(seed + 53) - 0.5) * 220).toFixed(1),
-          ['--k' as string]: (0.7 + rnd(seed + 71) * 1.2).toFixed(2),
+          ['--o' as string]: order.toFixed(3),
+          // небольшой горизонтальный джиттер, чтобы клавиши падали чуть живее
+          ['--jx' as string]: ((rnd(seed) - 0.5) * 26).toFixed(1),
+          ['--i' as string]: String(n),
+          zIndex: total - n,
         },
       });
+      n++;
     }
   }
   return tiles;
@@ -126,20 +131,21 @@ export function Keyboard3D({ scrollRef }: { scrollRef: React.RefObject<HTMLEleme
           filter: drop-shadow(0 24px 44px rgba(0, 0, 0, 0.6));
         }
         .kb-tile {
-          --q: clamp(0, calc((1 - var(--p)) * var(--k)), 1);
+          /* локальный прогресс клавиши: стартует со сдвигом --o (волна) и
+             доезжает до 1 (встала на место). Ширина окна 0.5 → соседние
+             клавиши садятся друг за другом, как при наборе. */
+          --a: clamp(0, calc((var(--p) - var(--o) * 0.5) / 0.5), 1);
+          --drop: calc((1 - var(--a)));
           background-repeat: no-repeat;
           transform:
             translate3d(
-              calc(var(--dx) * var(--q) * 1px),
-              calc(var(--dy) * var(--q) * 1px),
-              calc(var(--dz) * var(--q) * 1px)
+              calc(var(--jx) * var(--drop) * 1px),
+              calc(var(--drop) * -190px),
+              calc(var(--drop) * 260px)
             )
-            rotateX(calc(var(--rx) * var(--q) * 1deg))
-            rotateY(calc(var(--ry) * var(--q) * 1deg))
-            rotateZ(calc(var(--rz) * var(--q) * 1deg));
-          opacity: calc(0.5 + (1 - var(--q)) * 0.5);
-          /* лёгкое перекрытие, чтобы на сборке не было щелей между плитками */
-          outline: 0.5px solid transparent;
+            rotateX(calc(var(--drop) * 70deg));
+          transform-origin: 50% 120%;
+          opacity: calc(0.15 + var(--a) * 0.85);
           background-clip: padding-box;
         }
         @media (prefers-reduced-motion: reduce) {

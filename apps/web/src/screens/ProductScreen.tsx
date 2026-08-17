@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getProduct } from '../lib/data';
-import { money } from '../lib/types';
+import { money, type Product } from '../lib/types';
 import { Screen } from '../components/Screen';
-import { ProductCard, ProductImage } from '../components/ProductCard';
+import { ProductImage } from '../components/ProductCard';
 import { Button, ErrorState, Section, Skeleton } from '../components/ui';
 import { useBackButton, useMainButton } from '../lib/tgHooks';
 import { isTelegram } from '../lib/telegram';
@@ -14,6 +14,9 @@ import { track } from '../lib/analytics';
 export default function ProductScreen() {
   const { slug = '' } = useParams();
   const navigate = useNavigate();
+  // Показываем «добавлено» на кнопке, НЕ уходя с карточки — клиент добирает сетап.
+  const [added, setAdded] = useState(false);
+  const addedTimer = useRef<number | null>(null);
 
   useBackButton(() => navigate(-1));
 
@@ -28,17 +31,22 @@ export default function ProductScreen() {
     if (product) track('product_open', { slug: product.slug, price: product.price });
   }, [product]);
 
-  const addToCart = () => {
-    if (!product) return;
-    cart.add(product, 1);
-    navigate('/cart');
+  useEffect(() => () => { if (addedTimer.current) clearTimeout(addedTimer.current); }, []);
+
+  const addToCart = (p?: Product) => {
+    const target = p ?? product;
+    if (!target) return;
+    cart.add(target, 1);
+    setAdded(true);
+    if (addedTimer.current) clearTimeout(addedTimer.current);
+    addedTimer.current = window.setTimeout(() => setAdded(false), 1400);
   };
 
   useMainButton({
-    text: product ? `в корзину · ${money(product.price)}` : 'загрузка',
+    text: product ? (added ? '✓ добавлено · ещё?' : `в корзину · ${money(product.price)}`) : 'загрузка',
     visible: Boolean(product?.inStock),
     active: true,
-    onClick: addToCart,
+    onClick: () => addToCart(),
   });
 
   if (query.isLoading) {
@@ -102,24 +110,59 @@ export default function ProductScreen() {
         </Section>
       )}
 
-      {/* Outside Telegram there is no MainButton, so the CTA lives in the page. */}
+      {/* Вне Telegram нет MainButton — CTA живёт на странице и остаётся тут же. */}
       {!isTelegram && product.inStock && (
         <div className="mt-6">
-          <Button onClick={addToCart}>
-            в корзину · {money(product.price)}
+          <Button onClick={() => addToCart()}>
+            {added ? '✓ добавлено · ещё?' : `в корзину · ${money(product.price)}`}
           </Button>
         </div>
       )}
 
       {query.data!.related.length > 0 && (
-        <Section title="смотрите также">
-          <div className="grid grid-cols-2 gap-2.5">
-            {query.data!.related.slice(0, 4).map((p) => (
-              <ProductCard key={p.id} product={p} />
+        <Section title="собери сетап">
+          <p className="-mt-1 mb-3 text-[12px] text-[var(--color-muted)]">
+            по одному из каждой категории — добери набор в один тап
+          </p>
+          <div className="flex flex-col gap-2.5">
+            {query.data!.related.map((p) => (
+              <SetupRow key={p.id} product={p} onAdd={() => addToCart(p)} />
             ))}
           </div>
         </Section>
       )}
     </Screen>
+  );
+}
+
+function SetupRow({ product, onAdd }: { product: Product; onAdd: () => void }) {
+  const navigate = useNavigate();
+  const [done, setDone] = useState(false);
+  return (
+    <div className="card flex items-center gap-3 p-2.5">
+      <button
+        onClick={() => navigate(`/product/${product.slug}`)}
+        className="h-[56px] w-[56px] shrink-0 overflow-hidden bg-[var(--color-surface)]"
+      >
+        <ProductImage product={product} className="h-full w-full" />
+      </button>
+      <button onClick={() => navigate(`/product/${product.slug}`)} className="flex min-w-0 flex-1 flex-col text-left">
+        <span className="truncate text-[14px]">{product.title}</span>
+        <span className="text-[11px] lowercase text-[var(--color-muted)]">{product.category.title}</span>
+      </button>
+      <div className="text-right">
+        <div className="mb-1 text-[13px] font-semibold">{money(product.price)}</div>
+        <button
+          onClick={() => {
+            onAdd();
+            setDone(true);
+            setTimeout(() => setDone(false), 1200);
+          }}
+          className="rounded-[3px] border border-[var(--color-line)] bg-[var(--color-ink)] px-3 py-1 text-[12px] font-medium text-[var(--color-bg)] transition active:scale-95"
+        >
+          {done ? '✓' : '+ в корзину'}
+        </button>
+      </div>
+    </div>
   );
 }

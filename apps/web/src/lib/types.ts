@@ -13,6 +13,8 @@ export type Product = {
   inStock: boolean;
   isPopular: boolean;
   isLimited: boolean;
+  /** доминирующий цвет фото — для мягкого свечения под товаром */
+  accent?: string;
   category: { slug: string; title: string };
 };
 

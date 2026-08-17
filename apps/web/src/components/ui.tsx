@@ -12,7 +12,7 @@ export function Button({
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; loading?: boolean }) {
   const base =
-    'inline-flex h-12 w-full items-center justify-center gap-2 rounded-[3px] text-[15px] font-medium lowercase transition active:scale-[0.985] disabled:opacity-40 disabled:active:scale-100';
+    'btn-ripple relative overflow-hidden inline-flex h-12 w-full items-center justify-center gap-2 rounded-[3px] text-[15px] font-medium lowercase transition active:scale-[0.985] disabled:opacity-40 disabled:active:scale-100';
   const styles: Record<Variant, string> = {
     primary: 'bg-[var(--color-ink)] text-[var(--color-bg)]',
     ghost: 'border border-[var(--color-line)] bg-[var(--color-surface)] text-[var(--color-ink)]',
@@ -22,6 +22,7 @@ export function Button({
     <button
       {...rest}
       disabled={rest.disabled || loading}
+      onPointerDown={spawnRipple}
       onClick={(e) => {
         haptic.press();
         onClick?.(e);
@@ -31,6 +32,20 @@ export function Button({
       {loading ? <Spinner /> : children}
     </button>
   );
+}
+
+/** Лёгкий ripple из точки нажатия — тактильно приятная кнопка. */
+function spawnRipple(e: React.PointerEvent<HTMLButtonElement>) {
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const d = Math.max(rect.width, rect.height);
+  const r = document.createElement('span');
+  r.className = 'btn-ripple-dot';
+  r.style.width = r.style.height = `${d}px`;
+  r.style.left = `${e.clientX - rect.left - d / 2}px`;
+  r.style.top = `${e.clientY - rect.top - d / 2}px`;
+  btn.appendChild(r);
+  r.addEventListener('animationend', () => r.remove());
 }
 
 export function Spinner({ size = 18 }: { size?: number }) {

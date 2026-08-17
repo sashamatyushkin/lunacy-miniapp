@@ -50,7 +50,8 @@
       "category": {
         "slug": "klaviatury",
         "title": "клавиатуры"
-      }
+      },
+      "accent": "#9b5d3a"
     },
     {
       "id": "cmsu7a4nb0008jeohcde6h3p4",
@@ -75,7 +76,8 @@
       "category": {
         "slug": "klaviatury",
         "title": "клавиатуры"
-      }
+      },
+      "accent": "#559fe7"
     },
     {
       "id": "cmsu7a4nc000ajeohcrsby0dd",
@@ -100,7 +102,8 @@
       "category": {
         "slug": "klaviatury",
         "title": "клавиатуры"
-      }
+      },
+      "accent": "#e56852"
     },
     {
       "id": "cmsu7a4nd000cjeoh6v5eexwo",
@@ -125,7 +128,8 @@
       "category": {
         "slug": "klaviatury",
         "title": "клавиатуры"
-      }
+      },
+      "accent": "#c41124"
     },
     {
       "id": "cmsu7a4nf000ejeohnxorxvot",
@@ -150,7 +154,8 @@
       "category": {
         "slug": "myshki",
         "title": "мышки"
-      }
+      },
+      "accent": "#a79494"
     },
     {
       "id": "cmsu7a4ng000gjeohk2e2458x",
@@ -175,7 +180,8 @@
       "category": {
         "slug": "myshki",
         "title": "мышки"
-      }
+      },
+      "accent": "#a48f8f"
     },
     {
       "id": "cmsu7a4nh000ijeohysrsqdtu",
@@ -200,7 +206,8 @@
       "category": {
         "slug": "naushniki",
         "title": "наушники"
-      }
+      },
+      "accent": "#756060"
     },
     {
       "id": "cmsu7a4ni000kjeoh8vrjxvdc",
@@ -225,7 +232,8 @@
       "category": {
         "slug": "naushniki",
         "title": "наушники"
-      }
+      },
+      "accent": "#a79494"
     },
     {
       "id": "cmsu7a4nk000mjeoh4n38dnge",
@@ -249,7 +257,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#d6002c"
     },
     {
       "id": "cmsu7a4nl000ojeohzz6a3w2v",
@@ -273,7 +282,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#a79494"
     },
     {
       "id": "cmsu7a4nm000qjeohlnjaurhw",
@@ -297,7 +307,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#756060"
     },
     {
       "id": "cmsu7a4nn000sjeoht9otog9j",
@@ -321,7 +332,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#a79494"
     },
     {
       "id": "cmsu7a4no000ujeohaqgpbewg",
@@ -345,7 +357,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#756060"
     },
     {
       "id": "cmsu7a4np000wjeohlojsuhvq",
@@ -369,7 +382,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#92a2aa"
     },
     {
       "id": "cmsu7a4nq000yjeohonh1en9n",
@@ -393,7 +407,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#927979"
     },
     {
       "id": "cmsu7a4nr0010jeohuw57xfqm",
@@ -417,7 +432,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#a79494"
     },
     {
       "id": "cmsu7a4ns0012jeoh48iz7wj7",
@@ -441,7 +457,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#a79494"
     },
     {
       "id": "cmsu7a4nt0014jeoh0fibwbq3",
@@ -465,7 +482,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#a28d8d"
     },
     {
       "id": "cmsu7a4nu0016jeohl526hbho",
@@ -489,7 +507,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#c61018"
     },
     {
       "id": "cmsu7a4nv0018jeohnfke3zsn",
@@ -513,7 +532,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#3491e8"
     },
     {
       "id": "cmsu7a4nw001ajeohl2ajhew1",
@@ -537,7 +557,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#567f71"
     },
     {
       "id": "cmsu7a4nx001cjeohtewcfs0f",
@@ -561,7 +582,8 @@
       "category": {
         "slug": "kovriki",
         "title": "коврики"
-      }
+      },
+      "accent": "#5a94d3"
     },
     {
       "id": "cmsu7a4ny001ejeohqro0rjqq",
@@ -585,7 +607,8 @@
       "category": {
         "slug": "rukava",
         "title": "рукава"
-      }
+      },
+      "accent": "#756060"
     },
     {
       "id": "cmsu7a4nz001gjeohfpkhw86q",
@@ -609,7 +632,8 @@
       "category": {
         "slug": "rukava",
         "title": "рукава"
-      }
+      },
+      "accent": "#a79494"
     }
   ]
 }

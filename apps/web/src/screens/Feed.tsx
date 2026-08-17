@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getCategories, getProducts, getStories } from '../lib/data';
+import { getCategories, getProducts, getStories, representativeImage } from '../lib/data';
 import { Screen } from '../components/Screen';
 import { Keyboard3D } from '../components/Keyboard3D';
 import { SixSeven } from '../components/SixSeven';
@@ -29,9 +29,11 @@ export default function Feed() {
 
   return (
     <>
-      <Screen ref={scrollRef}>
+      {/* живой фон ленты — очень медленный градиент */}
+      <div className="feed-aurora" aria-hidden />
+      <Screen ref={scrollRef} className="relative z-[1]">
         {/* бренд по центру, над лентой */}
-        <div className="mb-3 text-center text-[13px] uppercase tracking-[0.42em] text-[var(--color-soft)]">
+        <div className="brand mb-3 text-center text-[20px] lowercase tracking-[0.34em] text-[var(--color-ink)]">
           lunacy
         </div>
 
@@ -92,21 +94,34 @@ export default function Feed() {
           )}
         </Section>
 
-        {/* categories */}
+        {/* categories — с миниатюрой товара */}
         <Section title="категории">
           <div className="grid grid-cols-2 gap-2.5">
             {categories.isLoading
-              ? [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[74px]" />)
-              : categories.data?.map((c) => (
-                  <Link
-                    key={c.id}
-                    to={`/catalog?category=${c.slug}`}
-                    className="card flex h-[74px] flex-col justify-center px-4 transition active:scale-[0.98]"
-                  >
-                    <span className="text-[15px] lowercase">{c.title}</span>
-                    <span className="text-[11px] text-[var(--color-muted)]">{c.count} шт.</span>
-                  </Link>
-                ))}
+              ? [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[92px]" />)
+              : categories.data?.map((c) => {
+                  const thumb = representativeImage(c.slug);
+                  return (
+                    <Link
+                      key={c.id}
+                      to={`/catalog?category=${c.slug}`}
+                      className="card relative flex h-[92px] items-end overflow-hidden p-3 transition active:scale-[0.98]"
+                    >
+                      {thumb && (
+                        <img
+                          src={thumb}
+                          alt=""
+                          loading="lazy"
+                          className="pointer-events-none absolute -right-3 -top-2 h-[70px] w-[70px] rotate-6 object-contain opacity-90 drop-shadow-[0_6px_10px_rgba(0,0,0,0.5)]"
+                        />
+                      )}
+                      <div className="relative z-10">
+                        <div className="text-[15px] lowercase">{c.title}</div>
+                        <div className="text-[11px] text-[var(--color-muted)]">{c.count} шт.</div>
+                      </div>
+                    </Link>
+                  );
+                })}
           </div>
         </Section>
 

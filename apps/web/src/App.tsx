@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { BottomNav } from './components/BottomNav';
 import { Spinner } from './components/ui';
 import { SixSeven } from './components/SixSeven';
@@ -53,11 +54,13 @@ function Boot() {
           animation: boot-rise 0.7s var(--ease-out-expo) 0.15s both;
         }
         .boot-title-67 {
-          font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: #f4f4f4;
+          font-family: 'Unbounded', Inter, sans-serif;
+          font-size: 21px; font-weight: 700; letter-spacing: -0.02em; color: #f4f4f4;
         }
         .boot-title-x { font-size: 16px; color: var(--color-muted); }
         .boot-title-lun {
-          font-size: 22px; font-weight: 700; letter-spacing: 0.02em; color: #f4f4f4;
+          font-family: 'Unbounded', Inter, sans-serif;
+          font-size: 21px; font-weight: 700; letter-spacing: 0.04em; color: #f4f4f4;
           text-transform: lowercase;
         }
         .boot-bar {
@@ -81,7 +84,8 @@ const SPLASH_MS = 2600;
 
 export default function App() {
   const { status, login } = useSession();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
@@ -112,19 +116,31 @@ export default function App() {
 
   return (
     <div className="h-full">
-      <Suspense fallback={<Fallback />}>
-        <Routes>
-          <Route path="/" element={<Feed />} />
-          <Route path="/catalog" element={<Catalog />} />
-          <Route path="/product/:slug" element={<ProductScreen />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/pay/:id" element={<Payment />} />
-          <Route path="/order/:id" element={<OrderScreen />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      {/* мягкий переход между экранами — приложение читается как нативное */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={pathname}
+          className="h-full"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <Suspense fallback={<Fallback />}>
+            <Routes location={location}>
+              <Route path="/" element={<Feed />} />
+              <Route path="/catalog" element={<Catalog />} />
+              <Route path="/product/:slug" element={<ProductScreen />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/pay/:id" element={<Payment />} />
+              <Route path="/order/:id" element={<OrderScreen />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </motion.div>
+      </AnimatePresence>
       {showNav && <BottomNav />}
     </div>
   );

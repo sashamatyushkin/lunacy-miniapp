@@ -36,6 +36,14 @@ export async function getCategories(): Promise<Category[]> {
   return get<Category[]>('/api/categories');
 }
 
+/** Витринный товар категории — для миниатюры в плитке категорий. */
+export function representativeImage(categorySlug: string): string | undefined {
+  const p =
+    PRODUCTS.find((x) => x.category.slug === categorySlug && x.isPopular) ??
+    PRODUCTS.find((x) => x.category.slug === categorySlug);
+  return p?.images[0];
+}
+
 export async function getStories(): Promise<Story[]> {
   if (IS_STATIC) return STORIES;
   return get<Story[]>('/api/stories');

@@ -142,7 +142,7 @@ export default function Payment() {
         </div>
         <div className="flex items-center justify-between px-3.5 py-3">
           <span className="text-[13px] lowercase text-[var(--color-muted)]">к оплате</span>
-          <span className="text-[20px] font-semibold">{money(order.total)}</span>
+          <span className="tnum text-[22px] font-bold">{money(order.total)}</span>
         </div>
       </div>
 

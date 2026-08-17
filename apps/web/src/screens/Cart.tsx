@@ -78,7 +78,7 @@ export default function Cart() {
 
       <div className="card mt-4 flex items-center justify-between px-3.5 py-3">
         <span className="text-[13px] lowercase text-[var(--color-muted)]">итого</span>
-        <span className="text-[18px] font-semibold">{money(data.total)}</span>
+        <span className="tnum text-[18px] font-semibold">{money(data.total)}</span>
       </div>
 
       {!isTelegram && (
@@ -95,7 +95,7 @@ function QtyButton({ label, onClick, disabled }: { label: string; onClick: () =>
     <button
       onClick={onClick}
       disabled={disabled}
-      className="grid h-7 w-7 place-items-center rounded-[3px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[15px] leading-none disabled:opacity-40"
+      className="grid h-7 w-7 place-items-center rounded-[3px] border border-[var(--color-line)] bg-[var(--color-surface)] text-[15px] leading-none transition-transform duration-150 active:scale-[0.82] disabled:opacity-40"
     >
       {label}
     </button>

@@ -9,6 +9,7 @@ import { Button, ErrorState, Section, Skeleton } from '../components/ui';
 import { useBackButton, useMainButton } from '../lib/tgHooks';
 import { isTelegram } from '../lib/telegram';
 import { cart } from '../store/cart';
+import { flyToCart } from '../lib/flyToCart';
 import { track } from '../lib/analytics';
 
 export default function ProductScreen() {
@@ -17,6 +18,7 @@ export default function ProductScreen() {
   // Показываем «добавлено» на кнопке, НЕ уходя с карточки — клиент добирает сетап.
   const [added, setAdded] = useState(false);
   const addedTimer = useRef<number | null>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
 
   useBackButton(() => navigate(-1));
 
@@ -33,9 +35,10 @@ export default function ProductScreen() {
 
   useEffect(() => () => { if (addedTimer.current) clearTimeout(addedTimer.current); }, []);
 
-  const addToCart = (p?: Product) => {
+  const addToCart = (p?: Product, fromEl?: HTMLElement | null) => {
     const target = p ?? product;
     if (!target) return;
+    flyToCart(fromEl ?? heroRef.current?.querySelector('img') ?? heroRef.current);
     cart.add(target, 1);
     setAdded(true);
     if (addedTimer.current) clearTimeout(addedTimer.current);
@@ -71,8 +74,17 @@ export default function ProductScreen() {
 
   return (
     <Screen>
-      <div className="card mb-4 aspect-square w-full overflow-hidden">
-        <ProductImage product={product} className="h-full w-full" />
+      <div
+        ref={heroRef}
+        className="card relative mb-4 aspect-square w-full overflow-hidden"
+        style={{ ['--glow' as string]: product.accent ?? '#9b9b9b' }}
+      >
+        {/* мягкое свечение акцентного цвета — товар «оживает» */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ background: 'radial-gradient(circle at 50% 42%, var(--glow) 0%, transparent 62%)', opacity: 0.28 }}
+        />
+        <ProductImage product={product} className="relative h-full w-full" />
       </div>
 
       <div className="flex items-start justify-between gap-3">
@@ -81,7 +93,7 @@ export default function ProductScreen() {
           {product.subtitle && <div className="mt-1 text-[12px] text-[var(--color-muted)]">{product.subtitle}</div>}
         </div>
         <div className="text-right">
-          <div className="text-[20px] font-semibold">{money(product.price)}</div>
+          <div className="tnum text-[22px] font-bold">{money(product.price)}</div>
           {product.oldPrice && (
             <div className="text-[12px] text-[var(--color-muted)] line-through">{money(product.oldPrice)}</div>
           )}
@@ -126,7 +138,7 @@ export default function ProductScreen() {
           </p>
           <div className="flex flex-col gap-2.5">
             {query.data!.related.map((p) => (
-              <SetupRow key={p.id} product={p} onAdd={() => addToCart(p)} />
+              <SetupRow key={p.id} product={p} onAdd={(el) => addToCart(p, el)} />
             ))}
           </div>
         </Section>
@@ -135,12 +147,14 @@ export default function ProductScreen() {
   );
 }
 
-function SetupRow({ product, onAdd }: { product: Product; onAdd: () => void }) {
+function SetupRow({ product, onAdd }: { product: Product; onAdd: (el: HTMLElement | null) => void }) {
   const navigate = useNavigate();
   const [done, setDone] = useState(false);
+  const imgRef = useRef<HTMLButtonElement>(null);
   return (
     <div className="card flex items-center gap-3 p-2.5">
       <button
+        ref={imgRef}
         onClick={() => navigate(`/product/${product.slug}`)}
         className="h-[56px] w-[56px] shrink-0 overflow-hidden bg-[var(--color-surface)]"
       >
@@ -154,7 +168,7 @@ function SetupRow({ product, onAdd }: { product: Product; onAdd: () => void }) {
         <div className="mb-1 text-[13px] font-semibold">{money(product.price)}</div>
         <button
           onClick={() => {
-            onAdd();
+            onAdd(imgRef.current?.querySelector('img') ?? imgRef.current);
             setDone(true);
             setTimeout(() => setDone(false), 1200);
           }}

@@ -13,11 +13,14 @@ export function StoriesRow({ stories, onOpen }: { stories: Story[]; onOpen: (i: 
           }}
           className="flex w-[68px] shrink-0 flex-col items-center gap-1.5"
         >
-          <span
-            className="grid h-[68px] w-[68px] place-items-center rounded-full p-[2px] transition-transform active:scale-95"
-            style={{ background: `conic-gradient(from 140deg, ${s.accent}, #f4f4f4, ${s.accent})` }}
-          >
-            <span className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-[var(--color-bg)] p-[3px]">
+          <span className="relative grid h-[68px] w-[68px] place-items-center transition-transform active:scale-95">
+            {/* вращающееся кольцо — «непросмотренная» сторис */}
+            <span
+              className="story-ring absolute inset-0 rounded-full"
+              style={{ background: `conic-gradient(from 0deg, ${s.accent}, #f4f4f4, ${s.accent}, ${s.accent}, #f4f4f4)` }}
+            />
+            <span className="absolute inset-[2px] rounded-full bg-[var(--color-bg)]" />
+            <span className="relative grid h-[62px] w-[62px] place-items-center overflow-hidden rounded-full bg-[var(--color-bg)] p-[3px]">
               {/* The "67" poster is the background; a real photo covers it. */}
               <span
                 className="relative grid h-full w-full place-items-center overflow-hidden rounded-full text-[13px] font-bold tracking-[-0.05em] text-[var(--color-ink)]"

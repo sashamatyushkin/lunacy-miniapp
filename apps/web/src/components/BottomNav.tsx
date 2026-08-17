@@ -28,7 +28,7 @@ export function BottomNav() {
               onClick={() => haptic.select()}
               className="relative flex flex-1 flex-col items-center justify-center gap-1"
             >
-              <span className="relative">
+              <span className="relative" {...(it.to === '/cart' ? { 'data-cart-icon': '' } : {})}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" stroke={active ? 'var(--color-ink)' : 'var(--color-muted)'}>
                   <path d={it.icon} />
                 </svg>

@@ -78,6 +78,56 @@
 .no-bar::-webkit-scrollbar { display: none; }
 .no-bar { scrollbar-width: none; }
 
+/* живой фон ленты — очень медленный дрейф тёплых пятен */
+.feed-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 30% at 18% 12%, rgba(96, 116, 168, 0.12), transparent 70%),
+    radial-gradient(36% 28% at 86% 26%, rgba(158, 96, 60, 0.11), transparent 70%),
+    radial-gradient(48% 36% at 52% 96%, rgba(70, 92, 130, 0.10), transparent 72%);
+  animation: aurora 26s ease-in-out infinite alternate;
+}
+@keyframes aurora {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(-16px) scale(1.08); }
+}
+
+/* кольцо непросмотренной сторис — медленно вращающийся градиент */
+.story-ring {
+  animation: story-spin 6s linear infinite;
+}
+@keyframes story-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ripple на кнопках */
+.btn-ripple-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.22;
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple 0.55s ease-out forwards;
+}
+@keyframes ripple {
+  to { transform: scale(1); opacity: 0; }
+}
+
+/* дисплейный акцент бренда */
+.brand {
+  font-family: 'Unbounded', Inter, sans-serif;
+  font-weight: 700;
+}
+/* цены — крупный табличный акцент */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
 @layer components {
   .card {
     background: var(--color-card);
